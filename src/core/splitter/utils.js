@@ -275,13 +275,6 @@ export function getTriangleLineIntersection( line, tri, target ) {
 
 	}
 
-	// if the final edge is degenerate then we haven't intersected
-	if ( target.distance() < EPS ) {
-
-		return false;
-
-	}
-
 	return setCount === 2;
 
 }
