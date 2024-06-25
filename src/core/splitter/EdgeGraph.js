@@ -486,9 +486,19 @@ export class EdgeGraph {
 			for ( let j = 0, l = _edgesToSwap.length; j < l; j ++ ) {
 
 				const other = _edgesToSwap[ j ];
-				this.swapEdge( other );
 
-				// check if the edge swapped into the form we needed
+				// This may have created an empty triangle
+				if ( this.swapEdge( other ) ) {
+
+					if ( other.triangle.getArea() == 0 || other.reverseTriangle.getArea() == 0 ) {
+
+						this.swapEdge( other );
+						continue;
+
+					}
+
+				}
+
 				if ( doEdgesMatch( inserting, other ) ) {
 
 					other.required = true;
