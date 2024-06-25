@@ -123,19 +123,16 @@ export class TriangleGraphSplitter {
 
 				if ( getTriangleLineIntersection( _edge, initialTri, _result ) ) {
 
-					if ( getTriangleLineIntersection( _edge, initialTri, _result ) ) {
-						if ( _result.distance() < EPSILON ) {
-		
-							graph.insertPoint( _result.start );
-					
-						}
-						else{
-		
-							graph.insertEdge( _result );
-						}
-		
+					if ( _result.distance() < EPSILON ) {
+	
+						graph.insertPoint( _result.start );
+				
 					}
-
+					else{
+	
+						graph.insertEdge( _result );
+					}
+		
 				}
 
 			}
