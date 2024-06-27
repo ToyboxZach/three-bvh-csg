@@ -1,8 +1,10 @@
 import { Vector3, Line3, Triangle } from 'three';
 import { lineIntersect } from './utils.js';
 import { ObjectPool } from './ObjectPool.js';
+import { closestPointLineToLine } from 'three-mesh-bvh/src/math/MathUtilities.js';
 
 const _vec = new Vector3();
+const _vec2 = new Vector3();
 const _triangleVertices = new Array( 3 );
 const _edgesToAdd = new Array( 3 );
 const _edgesToSwap = [];
@@ -459,7 +461,7 @@ export class EdgeGraph {
 				// }
 
 				// TODO: make sure we account for parallel scenarios
-				if ( lineIntersect( inserting, other, _vec ) ) {
+				if ( ! other.required && lineIntersect( inserting, other, _vec ) ) {
 
 					_edgesToSwap.push( other );
 
@@ -486,16 +488,10 @@ export class EdgeGraph {
 			for ( let j = 0, l = _edgesToSwap.length; j < l; j ++ ) {
 
 				const other = _edgesToSwap[ j ];
-
 				// This may have created an empty triangle
-				if ( this.swapEdge( other ) ) {
+				if ( ! this.swapEdge( other ) ) {
 
-					if ( other.triangle.getArea() == 0 || other.reverseTriangle.getArea() == 0 ) {
-
-						this.swapEdge( other );
-						continue;
-
-					}
+					continue;
 
 				}
 
@@ -523,6 +519,9 @@ export class EdgeGraph {
 
 		}
 
+		triangle.getNormal( _vec );
+
+
 		// get the vertices to swap to
 		const t0EdgeIndex = triangle.getEdgeIndex( edge );
 		const t1EdgeIndex = reverseTriangle.getEdgeIndex( edge );
@@ -530,8 +529,33 @@ export class EdgeGraph {
 		const t0SwapIndex = ( t0EdgeIndex + 2 ) % 3;
 		const t1SwapIndex = ( t1EdgeIndex + 2 ) % 3;
 
+		const otherEdgeIndex = ( t0SwapIndex + 1 ) % 3;
+		const otherEdgeIndexReverse = ( t1SwapIndex + 1 ) % 3;
+		const otherEdge = triangle.edges[ otherEdgeIndex ].edge;
+		const otherEdgeReverse = reverseTriangle.edges[ otherEdgeIndexReverse ].edge;
+		const travlingEdge = { start: triangle.points[ t0SwapIndex ], end: reverseTriangle.points[ t1SwapIndex ] };
+		const res = { x: NaN, y: NaN };
+		const resReverse = { x: NaN, y: NaN };
+		 closestPointLineToLine( otherEdge, travlingEdge, res );
+		 if ( res.x <= 0 || res.x >= 1 ) {
+
+			edge.required = true;
+
+			return false;
+
+		}
+
+		 closestPointLineToLine( otherEdgeReverse, travlingEdge, resReverse );
+		 if ( resReverse.x <= EPSILON || resReverse.x >= 1 - EPSILON ) {
+
+			edge.required = true;
+
+			return false;
+
+		}
+
 		// swap the edge direction
-		edge.start.copy( triangle.points[ t0SwapIndex ] );
+ 		edge.start.copy( triangle.points[ t0SwapIndex ] );
 		edge.startIndex = triangle.getVertexIndex( t0SwapIndex );
 		edge.end.copy( reverseTriangle.points[ t1SwapIndex ] );
 		edge.endIndex = reverseTriangle.getVertexIndex( t1SwapIndex );
@@ -546,6 +570,8 @@ export class EdgeGraph {
 		const t1ar = true;
 		const t1b = triangle.edges[ t0SwapIndex ].edge;
 		const t1br = triangle.edges[ t0SwapIndex ].reversed;
+
+		triangle.getNormal( _vec );
 
 		// one edge on each triangle can remain in place
 		triangle.setEdge( t0SwapIndex, t0a, t0ar );
