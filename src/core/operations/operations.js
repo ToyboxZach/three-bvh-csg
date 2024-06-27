@@ -20,6 +20,7 @@ const _tri = new Triangle();
 const _barycoordTri = new Triangle();
 const _attr = [];
 const _actions = [];
+const EPSILON = 1e-10;
 
 function getFirstIdFromSet( set ) {
 
@@ -172,6 +173,11 @@ function performSplitTriangleOperations(
 
 				}
 
+			}
+
+			if ( clippedTri.getArea() < EPSILON ) {
+				// We have no need of 0 area triangles
+				continue;
 			}
 
 			if ( _attr.length !== 0 ) {

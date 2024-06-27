@@ -297,7 +297,7 @@ export function getOperationAction( operation, hitSide, invert = false ) {
 
 			} else {
 
-				if ( hitSide === FRONT_SIDE ) {
+				if ( hitSide === FRONT_SIDE || hitSide === COPLANAR_OPPOSITE ) {
 
 					return ADD_TRI;
 
@@ -310,7 +310,7 @@ export function getOperationAction( operation, hitSide, invert = false ) {
 
 			if ( invert ) {
 
-				if ( hitSide === FRONT_SIDE ) {
+				if ( hitSide === FRONT_SIDE || hitSide === COPLANAR_OPPOSITE ) {
 
 					return ADD_TRI;
 
