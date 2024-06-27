@@ -579,8 +579,6 @@ export class EdgeGraph {
 		const t1b = triangle.edges[ t0SwapIndex ].edge;
 		const t1br = triangle.edges[ t0SwapIndex ].reversed;
 
-		triangle.getNormal( _vec );
-
 		// one edge on each triangle can remain in place
 		triangle.setEdge( t0SwapIndex, t0a, t0ar );
 		triangle.setEdge( ( t0SwapIndex + 1 ) % 3, t0b, t0br );

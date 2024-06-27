@@ -176,8 +176,10 @@ function performSplitTriangleOperations(
 			}
 
 			if ( clippedTri.getArea() < EPSILON ) {
+
 				// We have no need of 0 area triangles
 				continue;
+
 			}
 
 			if ( _attr.length !== 0 ) {
