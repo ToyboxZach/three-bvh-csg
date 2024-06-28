@@ -7,7 +7,6 @@ const _vec = new Vector3();
 const _triangleVertices = new Array( 3 );
 const _edgesToAdd = new Array( 3 );
 const _edgesToSwap = [];
-const SWAP_ITERATIONS = 3;
 
 function crossesOrTouchesLine( first, second ) {
 
@@ -107,6 +106,12 @@ class GraphEdge extends Line3 {
 
 		// whether this edge is required to stay in the graph
 		this.required = false;
+
+	}
+
+	isComplete() {
+
+		return this.triangle && this.reverseTriangle;
 
 	}
 
@@ -273,7 +278,7 @@ export class EdgeGraph {
 
 				const containingTriangle = triangles.findIndex( t => {
 
-					return t.getArea() !== 0 && t.containsPoint( point );
+					return t.getArea() > EPSILON && t.containsPoint( point );
 
 				} );
 				if ( containingTriangle === - 1 ) {
@@ -501,7 +506,7 @@ export class EdgeGraph {
 		}
 
 		// try for a few iterations to swap edges until they work
-		for ( let i = 0; i < SWAP_ITERATIONS; i ++ ) {
+		for ( let i = 0; i < _edgesToSwap.length; i ++ ) {
 
 			for ( let j = 0, l = _edgesToSwap.length; j < l; j ++ ) {
 

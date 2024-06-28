@@ -177,8 +177,24 @@ function performSplitTriangleOperations(
 
 			if ( clippedTri.getArea() < EPSILON ) {
 
-				// We have no need of 0 area triangles
-				continue;
+				let brokenEdge = false;
+				for ( const edge of clippedTri.edges ) {
+
+					if ( ! edge.edge?.isComplete() ) {
+
+						brokenEdge = true;
+						break;
+
+					}
+
+				}
+
+				if ( brokenEdge ) {
+
+					// We have no need of 0 area triangles without two triangles
+					continue;
+
+				}
 
 			}
 
