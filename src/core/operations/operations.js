@@ -1,4 +1,4 @@
-import { Matrix4, Matrix3, Triangle } from 'three';
+import { Matrix4, Matrix3, Triangle, Vector3 } from 'three';
 import {
 	getHitSideWithCoplanarCheck,
 	getHitSide,
@@ -22,6 +22,7 @@ const _attr = [];
 const _actions = [];
 const EPSILON = 1e-10;
 
+const _vec = new Vector3
 function getFirstIdFromSet( set ) {
 
 	for ( const id of set ) return id;
@@ -47,19 +48,19 @@ export function performOperation(
 
 	let groupOffset;
 	groupOffset = useGroups ? 0 : - 1;
-	performSplitTriangleOperations( a, b, aIntersections, operations, false, splitter, attributeData, groupOffset );
-	performWholeTriangleOperations( a, b, aIntersections, operations, false, attributeData, groupOffset );
+	//performSplitTriangleOperations( a, b, aIntersections, operations, false, splitter, attributeData, groupOffset );
+	//performWholeTriangleOperations( a, b, aIntersections, operations, false, attributeData, groupOffset );
 
 	// find whether the set of operations contains a non-hollow operations. If it does then we need
 	// to perform the second set of triangle additions
 	const nonHollow = operations
 		.findIndex( op => op !== HOLLOW_INTERSECTION && op !== HOLLOW_SUBTRACTION ) !== - 1;
 
-	if ( nonHollow ) {
+	if (  nonHollow ) {
 
 		groupOffset = useGroups ? a.geometry.groups.length || 1 : - 1;
 		performSplitTriangleOperations( b, a, bIntersections, operations, true, splitter, attributeData, groupOffset );
-		performWholeTriangleOperations( b, a, bIntersections, operations, true, attributeData, groupOffset );
+		//performWholeTriangleOperations( b, a, bIntersections, operations, true, attributeData, groupOffset );
 
 	}
 
@@ -107,9 +108,18 @@ function performSplitTriangleOperations(
 	const splitIds = intersectionMap.ids;
 	const intersectionSet = intersectionMap.intersectionSet;
 
-	// iterate over all split triangle indices
-	for ( let i = 0, l = splitIds.length; i < l; i ++ ) {
+	console.log("SPLIT IDS", splitIds.length, _matrix.clone())
+	console.log("START")
 
+	// iterate over all split triangle indices
+	for ( let i = 84, l = splitIds.length; i < l; i ++ ) {
+		if(i < 55){
+		//	continue;
+
+		}
+		else if(i > 84){
+			continue;
+		}
 		const ia = splitIds[ i ];
 		const groupIndex = groupOffset === - 1 ? 0 : groupIndices[ ia ] + groupOffset;
 
@@ -118,9 +128,25 @@ function performSplitTriangleOperations(
 		const ia0 = aIndex.getX( ia3 + 0 );
 		const ia1 = aIndex.getX( ia3 + 1 );
 		const ia2 = aIndex.getX( ia3 + 2 );
-		_triA.a.fromBufferAttribute( aPosition, ia0 ).applyMatrix4( _matrix );
-		_triA.b.fromBufferAttribute( aPosition, ia1 ).applyMatrix4( _matrix );
-		_triA.c.fromBufferAttribute( aPosition, ia2 ).applyMatrix4( _matrix );
+		_triA.a.fromBufferAttribute( aPosition, ia0 )
+_triA.b.fromBufferAttribute( aPosition, ia1 )
+_triA.c.fromBufferAttribute( aPosition, ia2 )
+//		console.log("_triA.a",_triA.a.clone())
+	//	console.log("_triA.b",_triA.b.clone())
+	//	console.log("_triA.c",_triA.c.clone())
+		_triA.getNormal( _vec,  );
+	//	console.log("normal",_vec.clone())
+
+
+		_triA.a.applyMatrix4( _matrix );
+		_triA.b.applyMatrix4( _matrix );
+		_triA.c.applyMatrix4( _matrix );
+
+	//	console.log("_triA.a",_triA.a.clone())
+//		console.log("_triA.b",_triA.b.clone())
+	//	console.log("_triA.c",_triA.c.clone())
+		_triA.getNormal( _vec,  );
+//		console.log("normal",_vec.clone())
 
 		// initialize the splitter with the triangle from geometry A
 		splitter.reset();
@@ -128,6 +154,8 @@ function performSplitTriangleOperations(
 
 		// split the triangle with the intersecting triangles from B
 		const intersectingIndices = intersectionSet[ ia ];
+		console.log("intersectingIndices",intersectingIndices.length)
+
 		for ( let ib = 0, l = intersectingIndices.length; ib < l; ib ++ ) {
 
 			const ib3 = 3 * intersectingIndices[ ib ];
@@ -137,6 +165,7 @@ function performSplitTriangleOperations(
 			_triB.a.fromBufferAttribute( bPosition, ib0 );
 			_triB.b.fromBufferAttribute( bPosition, ib1 );
 			_triB.c.fromBufferAttribute( bPosition, ib2 );
+			splitter.graph.index = ib;
 			splitter.splitByTriangle( _triB );
 
 		}
@@ -145,32 +174,43 @@ function performSplitTriangleOperations(
 		if ( splitter.complete ) {
 
 			splitter.complete();
+			console.log("COMPLETE")
 
 		}
 
+	
+	
 		// for all triangles in the split result
 		const triangles = splitter.triangles;
+		_triA.getNormal( _vec,  );
+		console.log("COPLANAR!", splitter.coplanarTriangleUsed)
+		
+		let added = 0
 		for ( let ib = 0, l = triangles.length; ib < l; ib ++ ) {
 
 			// get the barycentric coordinates of the clipped triangle to add
 			const clippedTri = triangles[ ib ];
 
+			 clippedTri.getNormal( _vec );
+	//		console.log("NORMAL NEW", _vec.clone())
+		//	console.log("HERE", clippedTri.clone(), _triA.clone())
 			// try to use the side derived from the clipping but if it turns out to be
 			// uncertain then fall back to the raycasting approach
-			const hitSide = splitter.coplanarTriangleUsed ?
+			
+				const hitSide = splitter.coplanarTriangleUsed ?
 				getHitSideWithCoplanarCheck( clippedTri, bBVH ) :
 				getHitSide( clippedTri, bBVH );
-
+				console.log("_TRIA", hitSide, _vec)
 			_attr.length = 0;
 			_actions.length = 0;
 			for ( let o = 0, lo = operations.length; o < lo; o ++ ) {
 
 				const op = getOperationAction( operations[ o ], hitSide, invert );
-				if ( op !== SKIP_TRI ) {
+				if ( i==84 || op !== SKIP_TRI ) {
 
 					_actions.push( op );
 					_attr.push( attributeData[ o ].getGroupAttrSet( groupIndex ) );
-
+					added++;
 				}
 
 			}
@@ -182,7 +222,7 @@ function performSplitTriangleOperations(
 
 					if ( ! edge.edge?.isComplete() ) {
 
-						brokenEdge = true;
+					//	brokenEdge = true;
 						break;
 
 					}
@@ -216,6 +256,8 @@ function performSplitTriangleOperations(
 			}
 
 		}
+		console.log("ADDED", added, "INDEX", i)
+
 
 	}
 

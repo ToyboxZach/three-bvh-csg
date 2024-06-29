@@ -8,6 +8,11 @@ const _triangleVertices = new Array( 3 );
 const _edgesToAdd = new Array( 3 );
 const _edgesToSwap = [];
 
+const MIN_EDGES_TO_SWAP = 3;
+// This should be more than MIN_EDGES_TO_SWAP factorial
+const MAX_EDGES_ITERATIONS = 1024;
+const SMALL_EPSILON = 1e-12;
+
 function crossesOrTouchesLine( first, second ) {
 
 	const res = { x: NaN, y: NaN };
@@ -15,7 +20,7 @@ function crossesOrTouchesLine( first, second ) {
 	const distance = first.distance();
 	const smallDiff = res.x * distance;
 	const largeDiff = ( res.x - 1 ) * distance;
-	if ( smallDiff < - EPSILON || largeDiff > EPSILON ) {
+	if ( smallDiff < SMALL_EPSILON || largeDiff > - SMALL_EPSILON ) {
 
 		return true;
 
@@ -241,9 +246,53 @@ export class EdgeGraph {
 		inserting.endIndex = endIndex;
 
 		// swap the edges
-		if ( ! this.markMatchingEdgeRequired( inserting ) ) {
+		let requiredEdgeResult;
+		const pendingEndPoints = [];
+
+		let safetyIterations = 1024 * 1024;
+		do {
+
+			requiredEdgeResult = this.markMatchingEdgeRequired( inserting );
+			if ( requiredEdgeResult.newPoint ) {
+
+				// We did enough iterations and couldn't find a solution
+				// Lets add the middle point
+				pendingEndPoints.push( inserting.endIndex );
+				const newEnd = this.insertPoint( requiredEdgeResult.newPoint );
+				if ( newEnd == inserting.startIndex ) {
+
+					continue;
+
+				}
+
+				inserting.endIndex = newEnd;
+				inserting.end.copy( points[ newEnd ] );
+
+			} else if ( pendingEndPoints.length ) {
+
+				// Reconstruct the edges with the remaining ends that were created
+				// while iterating down
+				const newEnd = pendingEndPoints.pop();
+				inserting.startIndex = inserting.endIndex;
+				inserting.start.copy( inserting.end );
+				inserting.endIndex = newEnd;
+				inserting.end.copy( points[ newEnd ] );
+
+			} else {
+
+				break;
+
+			}
+
+		} while ( ( -- safetyIterations ) > 0 );
+
+		if ( ! requiredEdgeResult.success ) {
+
 			// TODO
-			//console.error("Matching edge could not be found");
+			console.error( "Matching edge could not be found", this.index, safetyIterations );
+			// This seems to be able to happen in certain cases, it seems to be ok as
+			// resulting matches are not manifold.
+
 		}
 
 	}
@@ -454,6 +503,7 @@ export class EdgeGraph {
 		const { edges } = this;
 
 		_edgesToSwap.length = 0;
+		const distances = [];
 		for ( let i = 0, l = edges.length; i < l; i ++ ) {
 
 			// swap the edge if we don't emanate from the same point
@@ -486,7 +536,13 @@ export class EdgeGraph {
 				// TODO: make sure we account for parallel scenarios
 				if ( lineIntersect( inserting, other, _vec ) ) {
 
+					const distance = inserting.start.distanceTo( _vec );
+
+					distances.push( { point: _vec.clone(), distance: distance } );
+
+
 					_edgesToSwap.push( other );
+
 
 				}
 
@@ -497,7 +553,7 @@ export class EdgeGraph {
 				if ( doEdgesMatch( inserting, other ) ) {
 
 					other.required = true;
-					return true;
+					return { success: true };
 
 				}
 
@@ -505,9 +561,12 @@ export class EdgeGraph {
 
 		}
 
+		const suggestedIterations = _edgesToSwap.length * _edgesToSwap.length * 10000;
+		const iterations = Math.max( Math.min( MAX_EDGES_ITERATIONS, suggestedIterations ), 10 );//_edgesToSwap.length * _edgesToSwap.length * 1000;
 		// try for a few iterations to swap edges until they work
-		for ( let i = 0; i < _edgesToSwap.length; i ++ ) {
+		for ( let i = 0; i < iterations; i ++ ) {
 
+			let hasValid = false;
 			for ( let j = 0, l = _edgesToSwap.length; j < l; j ++ ) {
 
 				const other = _edgesToSwap[ j ];
@@ -518,18 +577,37 @@ export class EdgeGraph {
 
 				}
 
+				hasValid = true;
 				if ( doEdgesMatch( inserting, other ) ) {
 
 					other.required = true;
-					return true;
+					return { success: true };
 
 				}
 
 			}
 
+			if ( ! hasValid ) {
+
+				break;
+
+			}
+
 		}
 
-		return false;
+		if ( _edgesToSwap.length > MIN_EDGES_TO_SWAP ) {
+
+			distances.sort( ( a, b )=>{
+
+				return a.distance - b.distance;
+
+			} );
+			const middle = distances[ Math.floor( ( distances.length / 2 ) ) ];
+			return { newPoint: middle.point, success: false };
+
+		}
+
+		return { success: false };
 
 	}
 
@@ -555,7 +633,6 @@ export class EdgeGraph {
 		const otherEdgeReverse = reverseTriangle.edges[ otherEdgeIndexReverse ].edge;
 		const travlingEdge = { start: triangle.points[ t0SwapIndex ], end: reverseTriangle.points[ t1SwapIndex ] };
 		if ( crossesOrTouchesLine( otherEdge, travlingEdge ) ) {
-
 
 			return false;
 

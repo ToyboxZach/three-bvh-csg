@@ -1,4 +1,4 @@
-import { Ray, Matrix4, DoubleSide, Vector3, Vector4, Triangle, Line3 } from 'three';
+import { Ray, Matrix4, DoubleSide, Vector3, Vector4, Triangle, Line3, Raycaster } from 'three';
 import { IntersectionMap } from '../IntersectionMap.js';
 import {
 	ADDITION,
@@ -36,6 +36,8 @@ export const ADD_TRI = 1;
 export const SKIP_TRI = 2;
 
 const FLOATING_COPLANAR_EPSILON = 1e-14;
+const JIGGLE_EPSILON = 1.032423e-12;
+const MINJIGGLEDISTANCE = JIGGLE_EPSILON * JIGGLE_EPSILON * 3;
 
 let _debugContext = null;
 export function setDebugContext( debugData ) {
@@ -49,8 +51,27 @@ export function getHitSide( tri, bvh ) {
 	tri.getMidpoint( _ray.origin );
 	tri.getNormal( _ray.direction );
 
-	const hit = bvh.raycastFirst( _ray, DoubleSide );
-	const hitBackSide = Boolean( hit && _ray.direction.dot( hit.face.normal ) > 0 );
+	let hit = bvh.raycastFirst( _ray, DoubleSide );
+	if ( ! hit || hit.distance > MINJIGGLEDISTANCE ) {
+
+		// Due to this bug https://github.com/gkjohnson/three-mesh-bvh/issues/684
+		// we could have a floating point error that misses a coplanar triangle
+		// If we do two casts there we can make sure we aren't having that issue
+
+		_ray.origin.addScaledVector( _ray.direction, JIGGLE_EPSILON );
+		const jiggleHit = bvh.raycastFirst( _ray, DoubleSide, 0, hit?.distance || Infinity );
+
+		if ( jiggleHit && jiggleHit.distance <= hit.distance ) {
+
+			hit = jiggleHit;
+
+		}
+
+	}
+
+
+	const hitVal = hit && _ray.direction.dot( hit.face.normal );
+	const hitBackSide = Boolean( hit && hitVal > 0 );
 	return hitBackSide ? BACK_SIDE : FRONT_SIDE;
 
 }

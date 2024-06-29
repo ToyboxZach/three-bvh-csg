@@ -80,12 +80,13 @@ export function areEdgesParallel( l1, l2 ) {
 
 }
 
-export function lineIntersect( l1, l2, target ) {
+export function lineIntersect( l1, l2, target, target2 ) {
 
 	const tg1 = new Vector3();
 	const tg2 = new Vector3();
 	closestPointsSegmentToSegment( l1, l2, tg1, tg2 );
 	target.copy( tg1 );
+	target2?.copy(tg2);
 
 	return tg1.distanceTo( tg2 ) < 1e-10;
 
