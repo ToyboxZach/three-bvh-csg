@@ -249,7 +249,7 @@ export class EdgeGraph {
 		let requiredEdgeResult;
 		const pendingEndPoints = [];
 
-		let safetyIterations = 1024 * 1024;
+		let safetyIterations = 2048;
 		do {
 
 			requiredEdgeResult = this.markMatchingEdgeRequired( inserting );
@@ -287,6 +287,12 @@ export class EdgeGraph {
 		} while ( ( -- safetyIterations ) > 0 );
 
 		if ( ! requiredEdgeResult.success ) {
+
+			if ( safetyIterations === 0 ) {
+
+				throw new Error( "Too many edges, cannot find a solution" );
+
+			}
 
 			// TODO
 			console.error( "Matching edge could not be found", this.index, safetyIterations );
