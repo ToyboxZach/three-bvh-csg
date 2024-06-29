@@ -107,6 +107,7 @@ function performSplitTriangleOperations(
 	const splitIds = intersectionMap.ids;
 	const intersectionSet = intersectionMap.intersectionSet;
 
+
 	// iterate over all split triangle indices
 	for ( let i = 0, l = splitIds.length; i < l; i ++ ) {
 
@@ -148,6 +149,8 @@ function performSplitTriangleOperations(
 
 		}
 
+
+
 		// for all triangles in the split result
 		const triangles = splitter.triangles;
 		for ( let ib = 0, l = triangles.length; ib < l; ib ++ ) {
@@ -155,12 +158,13 @@ function performSplitTriangleOperations(
 			// get the barycentric coordinates of the clipped triangle to add
 			const clippedTri = triangles[ ib ];
 
+
 			// try to use the side derived from the clipping but if it turns out to be
 			// uncertain then fall back to the raycasting approach
+
 			const hitSide = splitter.coplanarTriangleUsed ?
 				getHitSideWithCoplanarCheck( clippedTri, bBVH ) :
 				getHitSide( clippedTri, bBVH );
-
 			_attr.length = 0;
 			_actions.length = 0;
 			for ( let o = 0, lo = operations.length; o < lo; o ++ ) {
@@ -175,28 +179,6 @@ function performSplitTriangleOperations(
 
 			}
 
-			if ( clippedTri.getArea() < EPSILON ) {
-
-				let brokenEdge = false;
-				for ( const edge of clippedTri.edges ) {
-
-					if ( ! edge.edge?.isComplete() ) {
-
-						brokenEdge = true;
-						break;
-
-					}
-
-				}
-
-				if ( brokenEdge ) {
-
-					// We have no need of 0 area triangles without two triangles
-					continue;
-
-				}
-
-			}
 
 			if ( _attr.length !== 0 ) {
 
