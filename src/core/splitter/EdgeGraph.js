@@ -249,6 +249,16 @@ export class EdgeGraph {
 		let requiredEdgeResult;
 		const pendingEndPoints = [];
 
+		function goToNextPoint() {
+
+			const newEnd = pendingEndPoints.pop();
+			inserting.startIndex = inserting.endIndex;
+			inserting.start.copy( inserting.end );
+			inserting.endIndex = newEnd;
+			inserting.end.copy( points[ newEnd ] );
+
+		}
+
 		let safetyIterations = 2048;
 		do {
 
@@ -261,6 +271,8 @@ export class EdgeGraph {
 				const newEnd = this.insertPoint( requiredEdgeResult.newPoint );
 				if ( newEnd == inserting.startIndex ) {
 
+					goToNextPoint();
+
 					continue;
 
 				}
@@ -272,11 +284,7 @@ export class EdgeGraph {
 
 				// Reconstruct the edges with the remaining ends that were created
 				// while iterating down
-				const newEnd = pendingEndPoints.pop();
-				inserting.startIndex = inserting.endIndex;
-				inserting.start.copy( inserting.end );
-				inserting.endIndex = newEnd;
-				inserting.end.copy( points[ newEnd ] );
+				goToNextPoint();
 
 			} else {
 

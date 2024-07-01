@@ -37,7 +37,7 @@ export const SKIP_TRI = 2;
 
 const FLOATING_COPLANAR_EPSILON = 1e-14;
 const JIGGLE_EPSILON = 1.032423e-12;
-const MINJIGGLEDISTANCE = JIGGLE_EPSILON * JIGGLE_EPSILON * 3;
+const MINJIGGLEDISTANCE = JIGGLE_EPSILON * 2;
 
 let _debugContext = null;
 export function setDebugContext( debugData ) {
@@ -88,7 +88,7 @@ export function getHitSideWithCoplanarCheck( tri, bvh ) {
 	// get the ray the check the triangle for
 	tri.getNormal( _normal );
 	_ray.direction.copy( _normal );
-	tri.getMidpoint( _ray.origin );
+	tri.getMidpoint( _vec3 );
 
 	const total = 3;
 	let count = 0;
@@ -99,14 +99,17 @@ export function getHitSideWithCoplanarCheck( tri, bvh ) {
 		_ray.direction.x += rand() * JITTER_EPSILON;
 		_ray.direction.y += rand() * JITTER_EPSILON;
 		_ray.direction.z += rand() * JITTER_EPSILON;
-
 		// and invert it so we can account for floating point error by checking both directions
 		// to catch coplanar distances
+		_ray.origin.copy( _vec3 );
+		_ray.origin.addScaledVector( _ray.direction, JIGGLE_EPSILON );
+
 		_ray.direction.multiplyScalar( - 1 );
 
 		// check if the ray hit the backside
 		const hit = bvh.raycastFirst( _ray, DoubleSide );
 		let hitBackSide = Boolean( hit && _ray.direction.dot( hit.face.normal ) > 0 );
+
 		if ( hitBackSide ) {
 
 			count ++;
@@ -120,7 +123,7 @@ export function getHitSideWithCoplanarCheck( tri, bvh ) {
 		}
 
 		// if we're right up against another face then we're coplanar
-		if ( minDistance <= OFFSET_EPSILON ) {
+		if ( minDistance <= MINJIGGLEDISTANCE ) {
 
 			return hit.face.normal.dot( _normal ) > 0 ? COPLANAR_ALIGNED : COPLANAR_OPPOSITE;
 
@@ -167,8 +170,8 @@ export function collectIntersectingTriangles( a, b ) {
 					const pb = triangleB.plane;
 					const na = pa.normal;
 					const nb = pb.normal;
-
-					if ( na.dot( nb ) === 1 && Math.abs( pa.constant - pb.constant ) < FLOATING_COPLANAR_EPSILON ) {
+					const dot = na.dot( nb );
+					if ( Math.abs( 1 - dot ) < FLOATING_COPLANAR_EPSILON && Math.abs( pa.constant - pb.constant ) < FLOATING_COPLANAR_EPSILON ) {
 
 						intersected = true;
 
