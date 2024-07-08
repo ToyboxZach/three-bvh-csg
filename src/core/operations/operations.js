@@ -7,6 +7,7 @@ import {
 	appendAttributesFromIndices,
 	getOperationAction,
 	SKIP_TRI, INVERT_TRI,
+	fixHitSide,
 } from './operationsUtils.js';
 import { getTriCount } from '../utils/geometryUtils.js';
 import { HOLLOW_INTERSECTION, HOLLOW_SUBTRACTION } from '../constants.js';
@@ -87,6 +88,7 @@ function performSplitTriangleOperations(
 
 	const invertedGeometry = a.matrixWorld.determinant() < 0;
 
+	const bInverted = b.matrixWorld.determinant() < 0;
 	// transforms into the local frame of matrix b
 	_matrix
 		.copy( b.matrixWorld )
@@ -106,7 +108,6 @@ function performSplitTriangleOperations(
 	const bPosition = b.geometry.attributes.position;
 	const splitIds = intersectionMap.ids;
 	const intersectionSet = intersectionMap.intersectionSet;
-
 
 	// iterate over all split triangle indices
 	for ( let i = 0, l = splitIds.length; i < l; i ++ ) {
@@ -162,9 +163,11 @@ function performSplitTriangleOperations(
 			// try to use the side derived from the clipping but if it turns out to be
 			// uncertain then fall back to the raycasting approach
 
-			const hitSide = splitter.coplanarTriangleUsed ?
+			const initialHitSide = splitter.coplanarTriangleUsed ?
 				getHitSideWithCoplanarCheck( clippedTri, bBVH ) :
 				getHitSide( clippedTri, bBVH );
+			const hitSide = fixHitSide( initialHitSide, bInverted );
+
 			_attr.length = 0;
 			_actions.length = 0;
 			for ( let o = 0, lo = operations.length; o < lo; o ++ ) {
@@ -220,6 +223,7 @@ function performWholeTriangleOperations(
 ) {
 
 	const invertedGeometry = a.matrixWorld.determinant() < 0;
+	const bInverted = b.matrixWorld.determinant() < 0;
 
 	// matrix for transforming into the local frame of geometry b
 	_matrix
@@ -271,8 +275,8 @@ function performWholeTriangleOperations(
 		_tri.c.fromBufferAttribute( aPosition, i2 ).applyMatrix4( _matrix );
 
 		// get the side and decide if we need to cull the triangle based on the operation
-		const hitSide = getHitSide( _tri, bBVH );
-
+		const initialHitSide = getHitSideWithCoplanarCheck( _tri, bBVH );
+		const hitSide = fixHitSide( initialHitSide, bInverted );
 		_actions.length = 0;
 		_attr.length = 0;
 		for ( let o = 0, lo = operations.length; o < lo; o ++ ) {

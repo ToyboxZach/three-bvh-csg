@@ -28,6 +28,7 @@ const OFFSET_EPSILON = 1e-15;
 
 export const BACK_SIDE = - 1;
 export const FRONT_SIDE = 1;
+export const NO_HIT = 0;
 export const COPLANAR_OPPOSITE = - 2;
 export const COPLANAR_ALIGNED = 2;
 
@@ -35,7 +36,7 @@ export const INVERT_TRI = 0;
 export const ADD_TRI = 1;
 export const SKIP_TRI = 2;
 
-const FLOATING_COPLANAR_EPSILON = 1e-14;
+const FLOATING_COPLANAR_EPSILON = 1e-12;
 const JIGGLE_EPSILON = 1.032423e-12;
 const MINJIGGLEDISTANCE = JIGGLE_EPSILON * 2;
 
@@ -71,6 +72,12 @@ export function getHitSide( tri, bvh ) {
 
 
 	const hitVal = hit && _ray.direction.dot( hit.face.normal );
+	if ( ! hit ) {
+
+		return NO_HIT;
+
+	}
+
 	const hitBackSide = Boolean( hit && hitVal > 0 );
 	return hitBackSide ? BACK_SIDE : FRONT_SIDE;
 
@@ -138,7 +145,49 @@ export function getHitSideWithCoplanarCheck( tri, bvh ) {
 
 	}
 
+	if ( count == 0 ) {
+
+		return NO_HIT;
+
+	}
+
 	return count / total > 0.5 ? BACK_SIDE : FRONT_SIDE;
+
+}
+
+export function fixHitSide( hitSide, bInverted ) {
+
+	if ( hitSide == NO_HIT ) {
+
+		return FRONT_SIDE;
+
+	}
+
+	if ( bInverted ) {
+
+		if ( hitSide == COPLANAR_ALIGNED ) {
+
+			return COPLANAR_OPPOSITE;
+
+		} else if ( hitSide == COPLANAR_OPPOSITE ) {
+
+			return COPLANAR_ALIGNED;
+
+		} else if ( hitSide == FRONT_SIDE ) {
+
+			return BACK_SIDE;
+
+		} else if ( hitSide == BACK_SIDE ) {
+
+			return FRONT_SIDE;
+
+		}
+
+	}
+
+
+
+	return hitSide;
 
 }
 
@@ -175,7 +224,14 @@ export function collectIntersectingTriangles( a, b ) {
 
 						intersected = true;
 
+					} else if ( Math.abs( 1 + dot ) < FLOATING_COPLANAR_EPSILON && Math.abs( pa.constant + pb.constant ) < FLOATING_COPLANAR_EPSILON ) {
+
+
+						// Could be an inverted triangle at the exact opposite constant
+						intersected = true;
+
 					}
+
 
 				}
 
