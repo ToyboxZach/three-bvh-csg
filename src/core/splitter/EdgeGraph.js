@@ -10,7 +10,7 @@ const _edgesToSwap = [];
 
 const MIN_EDGES_TO_SWAP = 3;
 // This should be more than MIN_EDGES_TO_SWAP factorial
-const MAX_EDGES_ITERATIONS = 1024;
+const MAX_EDGES_ITERATIONS = 4096;
 const SMALL_EPSILON = 1e-12;
 
 function crossesOrTouchesLine( first, second ) {
@@ -318,18 +318,20 @@ export class EdgeGraph {
 
 		if ( index === null ) {
 
+			let minDist = Infinity;
+			let intersectingEdge = - 1;
 			// if we haven't been able to match a point see if we can find an existing edge it sits on
-			const intersectingEdge = edges.findIndex( e => {
+			edges.forEach( ( e, index ) => {
 
 				e.closestPointToPoint( point, true, _vec );
-				const found = _vec.distanceTo( point ) < EPSILON;
-				if ( found ) {
+				const dist = _vec.distanceTo( point );
+				const found = dist < EPSILON;
+				if ( found && dist < minDist ) {
 
-					point.copy( _vec );
+					minDist = dist;
+					intersectingEdge = index;
 
 				}
-
-				return found;
 
 			} );
 
@@ -338,10 +340,17 @@ export class EdgeGraph {
 				// if we didn't find an edge then try to find the triangle the point is in
 				index = points.length;
 				points.push( pointPool.getInstance().copy( point ) );
+				let maxArea = - Infinity;
+				let containingTriangle = - 1;
+				 triangles.forEach( ( t, index ) => {
 
-				const containingTriangle = triangles.findIndex( t => {
+					const area = t.getArea();
+					if ( area > EPSILON && area > maxArea && t.containsPoint( point ) ) {
 
-					return t.getArea() > EPSILON && t.containsPoint( point );
+						containingTriangle = index;
+						maxArea = area;
+
+					}
 
 				} );
 				if ( containingTriangle === - 1 ) {
@@ -522,6 +531,12 @@ export class EdgeGraph {
 
 			// swap the edge if we don't emanate from the same point
 			const other = edges[ i ];
+			if ( ! other.reverseTriangle || ! other.triangle ) {
+
+				continue;
+
+			}
+
 			if (
 				other.startIndex !== inserting.startIndex &&
 				other.startIndex !== inserting.endIndex &&
@@ -575,7 +590,7 @@ export class EdgeGraph {
 
 		}
 
-		const suggestedIterations = _edgesToSwap.length * _edgesToSwap.length * 10000;
+		const suggestedIterations = _edgesToSwap < 7 ? Math.pow( _edgesToSwap.length, Math.floor(_edgesToSwap.length / 2) ) : MAX_EDGES_ITERATIONS;
 		const iterations = Math.max( Math.min( MAX_EDGES_ITERATIONS, suggestedIterations ), 10 );//_edgesToSwap.length * _edgesToSwap.length * 1000;
 		// try for a few iterations to swap edges until they work
 		for ( let i = 0; i < iterations; i ++ ) {
@@ -609,7 +624,7 @@ export class EdgeGraph {
 
 		}
 
-		if ( _edgesToSwap.length > MIN_EDGES_TO_SWAP ) {
+		if ( distances.length > MIN_EDGES_TO_SWAP ) {
 
 			distances.sort( ( a, b )=>{
 
@@ -617,7 +632,7 @@ export class EdgeGraph {
 
 			} );
 			const middle = distances[ Math.floor( ( distances.length / 2 ) ) ];
-			return { newPoint: middle.point, success: false };
+			return { newPoint: middle?.point, success: false };
 
 		}
 
