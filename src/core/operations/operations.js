@@ -97,7 +97,6 @@ function performSplitTriangleOperations(
 	const intersectionSet = intersectionMap.intersectionSet;
 
 	// iterate over all split triangle indices
-	console.log( "HERE", splitIds.length );
 	for ( let i = 0, l = splitIds.length; i < l; i ++ ) {
 
 		const ia = splitIds[ i ];
@@ -152,7 +151,6 @@ function performSplitTriangleOperations(
 				? getHitSideWithCoplanarCheck( clippedTri, bBVH )
 				: getHitSide( clippedTri, bBVH );
 
-			console.log( "HERE", initialHitSide, ib );
 			const hitSide = fixHitSide( initialHitSide, bInverted );
 
 			_attr.length = 0;
