@@ -1,4 +1,4 @@
-import { Matrix4, Matrix3, Triangle } from 'three';
+import { Matrix4, Matrix3, Triangle } from "three";
 import {
 	getHitSideWithCoplanarCheck,
 	getHitSide,
@@ -6,12 +6,13 @@ import {
 	appendAttributeFromTriangle,
 	appendAttributesFromIndices,
 	getOperationAction,
-	SKIP_TRI, INVERT_TRI,
+	SKIP_TRI,
+	INVERT_TRI,
 	fixHitSide,
-} from './operationsUtils.js';
-import { getTriCount } from '../utils/geometryUtils.js';
-import { HOLLOW_INTERSECTION, HOLLOW_SUBTRACTION } from '../constants.js';
-import { isTriDegenerate } from '../utils/triangleUtils.js';
+} from "./operationsUtils.js";
+import { getTriCount } from "../utils/geometryUtils.js";
+import { HOLLOW_INTERSECTION, HOLLOW_SUBTRACTION } from "../constants.js";
+import { isTriDegenerate } from "../utils/triangleUtils.js";
 
 const _matrix = new Matrix4();
 const _normalMatrix = new Matrix3();
@@ -21,7 +22,6 @@ const _tri = new Triangle();
 const _barycoordTri = new Triangle();
 const _attr = [];
 const _actions = [];
-const EPSILON = 1e-10;
 
 function getFirstIdFromSet( set ) {
 
@@ -31,14 +31,7 @@ function getFirstIdFromSet( set ) {
 
 // runs the given operation against a and b using the splitter and appending data to the
 // attributeData object.
-export function performOperation(
-	a,
-	b,
-	operations,
-	splitter,
-	attributeData,
-	options = {},
-) {
+export function performOperation( a, b, operations, splitter, attributeData, options = {} ) {
 
 	const { useGroups = true } = options;
 	const { aIntersections, bIntersections } = collectIntersectingTriangles( a, b );
@@ -53,8 +46,7 @@ export function performOperation(
 
 	// find whether the set of operations contains a non-hollow operations. If it does then we need
 	// to perform the second set of triangle additions
-	const nonHollow = operations
-		.findIndex( op => op !== HOLLOW_INTERSECTION && op !== HOLLOW_SUBTRACTION ) !== - 1;
+	const nonHollow = operations.findIndex( ( op ) => op !== HOLLOW_INTERSECTION && op !== HOLLOW_SUBTRACTION ) !== - 1;
 
 	if ( nonHollow ) {
 
@@ -69,7 +61,7 @@ export function performOperation(
 
 	return {
 		groups: resultGroups,
-		materials: resultMaterials
+		materials: resultMaterials,
 	};
 
 }
@@ -83,21 +75,16 @@ function performSplitTriangleOperations(
 	invert,
 	splitter,
 	attributeData,
-	groupOffset = 0,
+	groupOffset = 0
 ) {
 
 	const invertedGeometry = a.matrixWorld.determinant() < 0;
 
-	const bInverted = b.matrixWorld.determinant() < 0;
+	const bInverted = ( b.matrixWorld.determinant() < 0 ) != invertedGeometry;
 	// transforms into the local frame of matrix b
-	_matrix
-		.copy( b.matrixWorld )
-		.invert()
-		.multiply( a.matrixWorld );
+	_matrix.copy( b.matrixWorld ).invert().multiply( a.matrixWorld );
 
-	_normalMatrix
-		.getNormalMatrix( a.matrixWorld )
-		.multiplyScalar( invertedGeometry ? - 1 : 1 );
+	_normalMatrix.getNormalMatrix( a.matrixWorld ).multiplyScalar( invertedGeometry ? - 1 : 1 );
 
 	const groupIndices = a.geometry.groupIndices;
 	const aIndex = a.geometry.index;
@@ -110,6 +97,7 @@ function performSplitTriangleOperations(
 	const intersectionSet = intersectionMap.intersectionSet;
 
 	// iterate over all split triangle indices
+	console.log( "HERE", splitIds.length );
 	for ( let i = 0, l = splitIds.length; i < l; i ++ ) {
 
 		const ia = splitIds[ i ];
@@ -150,8 +138,6 @@ function performSplitTriangleOperations(
 
 		}
 
-
-
 		// for all triangles in the split result
 		const triangles = splitter.triangles;
 		for ( let ib = 0, l = triangles.length; ib < l; ib ++ ) {
@@ -159,13 +145,14 @@ function performSplitTriangleOperations(
 			// get the barycentric coordinates of the clipped triangle to add
 			const clippedTri = triangles[ ib ];
 
-
 			// try to use the side derived from the clipping but if it turns out to be
 			// uncertain then fall back to the raycasting approach
 
-			const initialHitSide = splitter.coplanarTriangleUsed ?
-				getHitSideWithCoplanarCheck( clippedTri, bBVH ) :
-				getHitSide( clippedTri, bBVH );
+			const initialHitSide = splitter.coplanarTriangleUsed
+				? getHitSideWithCoplanarCheck( clippedTri, bBVH )
+				: getHitSide( clippedTri, bBVH );
+
+			console.log( "HERE", initialHitSide, ib );
 			const hitSide = fixHitSide( initialHitSide, bInverted );
 
 			_attr.length = 0;
@@ -182,7 +169,6 @@ function performSplitTriangleOperations(
 
 			}
 
-
 			if ( _attr.length !== 0 ) {
 
 				_triA.getBarycoord( clippedTri.a, _barycoordTri.a );
@@ -194,7 +180,15 @@ function performSplitTriangleOperations(
 					const attrSet = _attr[ k ];
 					const action = _actions[ k ];
 					const invertTri = action === INVERT_TRI;
-					appendAttributeFromTriangle( ia, _barycoordTri, a.geometry, a.matrixWorld, _normalMatrix, attrSet, invertedGeometry !== invertTri );
+					appendAttributeFromTriangle(
+						ia,
+						_barycoordTri,
+						a.geometry,
+						a.matrixWorld,
+						_normalMatrix,
+						attrSet,
+						invertedGeometry !== invertTri
+					);
 
 				}
 
@@ -212,28 +206,15 @@ function performSplitTriangleOperations(
 // at the moment this isn't always faster due to overhead of building the half edge structure
 // and degraded connectivity due to split triangles.
 
-function performWholeTriangleOperations(
-	a,
-	b,
-	splitTriSet,
-	operations,
-	invert,
-	attributeData,
-	groupOffset = 0,
-) {
+function performWholeTriangleOperations( a, b, splitTriSet, operations, invert, attributeData, groupOffset = 0 ) {
 
 	const invertedGeometry = a.matrixWorld.determinant() < 0;
-	const bInverted = b.matrixWorld.determinant() < 0;
+	const bInverted = ( b.matrixWorld.determinant() < 0 ) != invertedGeometry;
 
 	// matrix for transforming into the local frame of geometry b
-	_matrix
-		.copy( b.matrixWorld )
-		.invert()
-		.multiply( a.matrixWorld );
+	_matrix.copy( b.matrixWorld ).invert().multiply( a.matrixWorld );
 
-	_normalMatrix
-		.getNormalMatrix( a.matrixWorld )
-		.multiplyScalar( invertedGeometry ? - 1 : 1 );
+	_normalMatrix.getNormalMatrix( a.matrixWorld ).multiplyScalar( invertedGeometry ? - 1 : 1 );
 
 	const bBVH = b.geometry.boundsTree;
 	const groupIndices = a.geometry.groupIndices;
@@ -324,7 +305,16 @@ function performWholeTriangleOperations(
 						const action = _actions[ k ];
 						const attrSet = _attr[ k ].getGroupAttrSet( groupIndex );
 						const invertTri = action === INVERT_TRI;
-						appendAttributesFromIndices( i0, i1, i2, aAttributes, a.matrixWorld, _normalMatrix, attrSet, invertTri !== invertedGeometry );
+						appendAttributesFromIndices(
+							i0,
+							i1,
+							i2,
+							aAttributes,
+							a.matrixWorld,
+							_normalMatrix,
+							attrSet,
+							invertTri !== invertedGeometry
+						);
 
 					}
 
@@ -337,4 +327,3 @@ function performWholeTriangleOperations(
 	}
 
 }
-

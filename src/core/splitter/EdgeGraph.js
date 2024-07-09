@@ -590,7 +590,7 @@ export class EdgeGraph {
 
 		}
 
-		const suggestedIterations = _edgesToSwap < 7 ? Math.pow( _edgesToSwap.length, Math.floor(_edgesToSwap.length / 2) ) : MAX_EDGES_ITERATIONS;
+		const suggestedIterations = _edgesToSwap < 7 ? Math.pow( _edgesToSwap.length, Math.floor( _edgesToSwap.length / 2 ) ) : MAX_EDGES_ITERATIONS;
 		const iterations = Math.max( Math.min( MAX_EDGES_ITERATIONS, suggestedIterations ), 10 );//_edgesToSwap.length * _edgesToSwap.length * 1000;
 		// try for a few iterations to swap edges until they work
 		for ( let i = 0; i < iterations; i ++ ) {
@@ -797,7 +797,7 @@ export class EdgeGraph {
 
 	removeTriangle( t ) {
 
-		const { points, edges, triangles } = this;
+		const { edges, triangles } = this;
 		triangles.splice( triangles.indexOf( t ), 1 );
 
 		triangles.edges.forEach( info => {

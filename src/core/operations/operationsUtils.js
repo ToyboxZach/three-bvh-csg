@@ -1,4 +1,4 @@
-import { Ray, Matrix4, DoubleSide, Vector3, Vector4, Triangle, Line3, Raycaster } from 'three';
+import { Ray, Matrix4, DoubleSide, Vector3, Vector4, Triangle, Line3 } from 'three';
 import { IntersectionMap } from '../IntersectionMap.js';
 import {
 	ADDITION,
@@ -24,7 +24,6 @@ const _vec4_2 = new Vector4();
 const _edge = new Line3();
 const _normal = new Vector3();
 const JITTER_EPSILON = 1e-8;
-const OFFSET_EPSILON = 1e-15;
 
 export const BACK_SIDE = - 1;
 export const FRONT_SIDE = 1;
@@ -165,6 +164,8 @@ export function fixHitSide( hitSide, bInverted ) {
 
 	if ( bInverted ) {
 
+		// If b is inverted we may be hitting the wrong side of the coplanar triangle
+		// A normal hit will still correctly be inside of the mesh
 		if ( hitSide == COPLANAR_ALIGNED ) {
 
 			return COPLANAR_OPPOSITE;
@@ -172,14 +173,6 @@ export function fixHitSide( hitSide, bInverted ) {
 		} else if ( hitSide == COPLANAR_OPPOSITE ) {
 
 			return COPLANAR_ALIGNED;
-
-		} else if ( hitSide == FRONT_SIDE ) {
-
-			return BACK_SIDE;
-
-		} else if ( hitSide == BACK_SIDE ) {
-
-			return FRONT_SIDE;
 
 		}
 
